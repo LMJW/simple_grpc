@@ -17,7 +17,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	con, err := grpc.Dial("0.tcp.ngrok.io:19377", grpc.WithTransportCredentials(cred))
+	con, err := grpc.Dial("localhost:54332", grpc.WithTransportCredentials(cred))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -25,6 +25,7 @@ func main() {
 	cc := NewDummyServiceClient(con)
 
 	ch := make(chan os.Signal)
+	defer close(ch)
 
 	go func() {
 		i := 0
