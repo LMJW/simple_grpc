@@ -1,0 +1,17 @@
+syntax="proto3";
+
+package main;
+
+service DummyService{
+    rpc GetDummy(DummyRequest) returns (DummyResponse){}
+}
+
+
+message DummyRequest{
+    int32 count = 1;
+    string msg = 2;
+}
+
+message DummyResponse{
+    string msg = 1;
+}
