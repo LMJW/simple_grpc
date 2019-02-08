@@ -7,7 +7,7 @@ all: cert protobuf build
 
 cert: server-cert ca-cert client-cert
 
-ca-cert: server-cert
+ca-cert: server-cert client-cert
 	openssl genrsa -out $(CA_NAME).key 2048
 	openssl req -new -key $(CA_NAME).key -out $(CA_NAME).csr -subj "/CN=$(CA_NAME)"
 
@@ -16,8 +16,13 @@ ca-cert: server-cert
 
 	openssl x509 -req -days 365 -in ./server/$(SERVER_NAME).csr \
 	-CA $(CA_NAME).crt -CAkey $(CA_NAME).key -CAcreateserial -out $(SERVER_NAME).crt
+
+	openssl x509 -req -days 365 -in ./client/$(CLIENT_NAME).csr \
+	-CA $(CA_NAME).crt -CAkey $(CA_NAME).key -CAcreateserial -out $(CLIENT_NAME).crt
+
 	mv $(CA_NAME).* ./ca
 	mv $(SERVER_NAME).crt ./server
+	mv $(CLIENT_NAME).crt ./client
 
 server-cert:
 	openssl req -new \
@@ -27,11 +32,11 @@ server-cert:
 	mv $(SERVER_NAME).* ./server
 
 client-cert:
-	cp ./ca/$(CA_NAME).crt ./client
+	# cp ./ca/$(CA_NAME).crt ./client
 	openssl req -new \
 	-newkey rsa:2048 -nodes -keyout $(CLIENT_NAME).key \
 	-out $(CLIENT_NAME).csr \
-	-subj "/C=AU/ST=sydney/O=individual/OU=homepc/CN=$(DOMAIN_NAME)"
+	-subj "/C=AU/ST=sydney/O=individual/OU=homepc/CN=client-xx"
 	mv $(CLIENT_NAME).* ./client
 
 protobuf: dummy.proto
@@ -47,3 +52,4 @@ clean:
 	rm -f ./*/$(CA_NAME).*
 	rm -f ./*/$(SERVER_NAME)*
 	rm -f ./*/$(CLIENT_NAME)*
+	rm -f ./*/.srl

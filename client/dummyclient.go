@@ -2,20 +2,32 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"time"
 
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+
+	"google.golang.org/grpc"
 )
 
 func main() {
-	cred, err := credentials.NewClientTLSFromFile("./ca.crt", "")
-	if err != nil {
-		log.Fatal(err)
+	cp := x509.NewCertPool()
+	bs, err := ioutil.ReadFile("./ca.crt")
+	cp.AppendCertsFromPEM(bs)
+
+	clientcert, err := tls.LoadX509KeyPair("./client.crt", "./client.key")
+
+	cfg := tls.Config{
+		Certificates: []tls.Certificate{clientcert},
+		RootCAs:      cp,
 	}
+
+	cred := credentials.NewTLS(&cfg)
 
 	con, err := grpc.Dial("localhost:54332", grpc.WithTransportCredentials(cred))
 	if err != nil {

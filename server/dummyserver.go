@@ -2,7 +2,10 @@ package main
 
 import (
 	context "context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 
@@ -24,9 +27,6 @@ func (s *dummyServer) GetDummy(ctx context.Context, in *DummyRequest) (*DummyRes
 
 	auth, ok := p.AuthInfo.(credentials.TLSInfo)
 
-	fmt.Println(auth.State.ServerName)
-	fmt.Printf("%s\n", auth.State.TLSUnique)
-
 	for i, cert := range auth.State.PeerCertificates {
 		fmt.Println(i)
 		fmt.Printf("Peer certificate %v, Issued by %v", cert.Subject.CommonName, cert.Issuer.CommonName)
@@ -44,12 +44,31 @@ func (s *dummyServer) GetDummy(ctx context.Context, in *DummyRequest) (*DummyRes
 }
 
 func main() {
-	creds, _ := credentials.NewServerTLSFromFile("./server.crt", "./server.key")
+	log.Println("running")
+	// creds, _ := credentials.NewServerTLSFromFile("./server.crt", "./server.key")
+
+	server, err := tls.LoadX509KeyPair("./server.crt", "./server.key")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	caCert, err := ioutil.ReadFile("../ca/ca.crt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+	ta := credentials.NewTLS(&tls.Config{
+		Certificates: []tls.Certificate{server},
+		ClientCAs:    caCertPool,
+		ClientAuth:   tls.RequireAnyClientCert,
+	})
+
 	s, err := net.Listen("tcp", ":54332")
 	if err != nil {
 		log.Fatal(err)
 	}
-	gs := grpc.NewServer(grpc.Creds(creds))
+	gs := grpc.NewServer(grpc.Creds(ta))
 	RegisterDummyServiceServer(gs, &dummyServer{})
 
 	gs.Serve(s)
